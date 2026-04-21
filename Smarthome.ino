@@ -6,7 +6,7 @@ Servo motorgaragem;
 
 // --- CONFIGURAÇÃO DA REDE ---
 const char* ssid = "NOME DA REDE"; 
-const char* password = "SENHA DO WiFI"; // Lembre-se de proteger isso
+const char* password = "SENHA DO WiFI"; 
 
 WiFiServer server(80);
 String header;
