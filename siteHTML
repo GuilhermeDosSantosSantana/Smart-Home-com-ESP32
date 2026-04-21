@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home - Dashboard IoT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
+        .pulse-mic { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row">
+
+    <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl z-20">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg"><i class="fa-solid fa-microchip text-white"></i></div>
+            <h1 class="font-bold text-xl tracking-wide">Casa<span class="text-blue-500">MDF</span></h1>
+        </div>
+        <div class="p-4 flex-1">
+            <p class="text-xs text-slate-500 font-bold uppercase mb-4 px-2">Monitoramento</p>
+            <div class="space-y-2">
+                <div class="bg-slate-800 rounded-xl p-4 flex items-center justify-between border border-slate-700">
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-temperature-half text-orange-500"></i><span class="text-sm">Temp.</span></div>
+                    <span id="txt-temp" class="font-bold text-orange-400">-- °C</span>
+                </div>
+                <div class="bg-slate-800 rounded-xl p-4 flex items-center justify-between border border-slate-700">
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-droplet text-blue-400"></i><span class="text-sm">Umidade</span></div>
+                    <span id="txt-umid" class="font-bold text-blue-400">-- %</span>
+                </div>
+                <!-- Nova funcionalidade: Média de Temperatura -->
+                <div class="bg-slate-800 rounded-xl p-4 flex items-center justify-between border border-slate-700">
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line text-purple-400"></i><span class="text-sm">Média Temp.</span></div>
+                    <div class="text-right">
+                        <span id="txt-media-temp" class="font-bold text-purple-400 block">-- °C</span>
+                        <span class="text-[10px] text-slate-500">(Última Hora)</span>
+                    </div>
+                </div>
+                <div class="bg-slate-800 rounded-xl p-4 flex items-center justify-between border border-slate-700">
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-person-walking text-red-400"></i><span class="text-sm">Movimento</span></div>
+                    <span id="txt-pir" class="font-bold text-slate-400 text-xs px-2 py-1 bg-slate-900 rounded">Nenhum</span>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-slate-800 text-xs text-center text-slate-500">
+            Projeto IoT Universitário
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-950 relative">
+        
+        <!-- Header com botão de Voz -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h2 class="text-2xl font-bold">Painel de Controle</h2>
+                <p class="text-slate-400 text-sm">Controle sua casa por voz ou pelos botões.</p>
+            </div>
+            
+            <button id="btn-mic" onclick="toggleVoice()" class="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
+                <i class="fa-solid fa-microphone text-xl"></i>
+                <span id="txt-mic">Ouvir Comandos</span>
+            </button>
+        </header>
+
+        <h3 class="text-slate-400 font-semibold mb-4 text-sm uppercase tracking-wider">Dispositivos</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            
+            <!-- Relays Genericos -->
+            <script>
+                const devices = [
+                    { id: 'sala', name: 'Luz Sala', icon: 'fa-lightbulb' },
+                    { id: 'cozinha', name: 'Luz Cozinha', icon: 'fa-lightbulb' },
+                    { id: 'quarto', name: 'Luz Quarto', icon: 'fa-bed' },
+                    { id: 'garagem', name: 'Garagem', icon: 'fa-car' },
+                    { id: 'varanda', name: 'Varanda', icon: 'fa-sun' },
+                    { id: 'sotao', name: 'Sótão', icon: 'fa-box' }
+                ];
+                
+                devices.forEach(dev => {
+                    document.write(`
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:border-slate-600 transition-colors">
+                            <i id="icon-${dev.id}" class="fa-solid ${dev.icon} text-3xl text-slate-600 transition-colors"></i>
+                            <span class="font-medium text-sm text-slate-300">${dev.name}</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-${dev.id}" onchange="updateFirebase('${dev.id}', this.checked)" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                    `);
+                });
+            </script>
+
+            <!-- Portão Servo -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center gap-3">
+                <i id="icon-porta" class="fa-solid fa-door-closed text-3xl text-slate-600"></i>
+                <span class="font-medium text-sm text-slate-300">Porta Principal</span>
+                <button id="btn-porta" onclick="togglePorta()" class="bg-slate-700 px-4 py-1.5 rounded-full text-xs font-bold w-full hover:bg-slate-600">ABRIR</button>
+            </div>
+
+            <!-- Alarme -->
+            <div class="bg-slate-900 border border-red-900/30 rounded-2xl p-4 flex flex-col items-center justify-center gap-3">
+                <i id="icon-alarme" class="fa-solid fa-shield-halved text-3xl text-slate-600"></i>
+                <span class="font-medium text-sm text-slate-300">Alarme</span>
+                <button id="btn-alarme" onclick="toggleAlarme()" class="bg-slate-700 px-4 py-1.5 rounded-full text-xs font-bold w-full hover:bg-red-600 transition-colors">ARMAR</button>
+            </div>
+        </div>
+
+        <h3 class="text-slate-400 font-semibold mb-4 text-sm uppercase tracking-wider">Mídia do ESP32</h3>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap gap-3 mb-8 items-center">
+            <i class="fa-solid fa-music text-purple-500 text-xl mr-2"></i>
+            <button onclick="playMusic('natal')" class="bg-slate-800 hover:bg-purple-600/50 text-slate-200 border border-slate-700 px-4 py-2 rounded-xl text-sm transition-colors">🎄 Natal</button>
+            <button onclick="playMusic('starwars')" class="bg-slate-800 hover:bg-blue-600/50 text-slate-200 border border-slate-700 px-4 py-2 rounded-xl text-sm transition-colors">⚔️ Star Wars</button>
+            <button onclick="playMusic('cat')" class="bg-slate-800 hover:bg-orange-600/50 text-slate-200 border border-slate-700 px-4 py-2 rounded-xl text-sm transition-colors">🐱 Keyboard Cat</button>
+            <button onclick="playMusic('parar')" class="bg-red-900/50 hover:bg-red-600 text-white border border-red-800 px-4 py-2 rounded-xl text-sm transition-colors ml-auto font-bold"><i class="fa-solid fa-stop"></i> Parar</button>
+        </div>
+
+        <h3 class="text-slate-400 font-semibold mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-yellow-400"></i> Consumo de Energia Virtual
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-inner">
+                <p class="text-xs text-slate-400 mb-1">Custo das Luzes Físicas</p>
+                <h4 class="text-2xl font-bold text-white mb-1" id="cost-lights">R$ 0,00</h4>
+                <p class="text-xs text-slate-500" id="time-lights">0h 0m 0s (15W por luz)</p>
+            </div>
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-inner">
+                <p class="text-xs text-slate-400 mb-1">Custo do Notebook (Uptime)</p>
+                <h4 class="text-2xl font-bold text-white mb-1" id="cost-pc">R$ 0,00</h4>
+                <p class="text-xs text-slate-500" id="time-pc">0h 0m 0s (Aprox. 50W)</p>
+            </div>
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-inner border-l-4 border-l-blue-500">
+                <p class="text-xs text-slate-400 mb-1">Custo Processamento IA Gemini</p>
+                <h4 class="text-2xl font-bold text-blue-400 mb-1" id="cost-ai">R$ 0,00</h4>
+                <p class="text-xs text-slate-500"><span id="count-ai">0</span> requisições (3Wh cada)</p>
+            </div>
+        </div>
+
+        <!-- Área de Resposta da IA e Debug -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl min-h-[100px] text-sm text-slate-400" id="ai-log">
+            Clique no microfone e diga algo como: <em>"Ligue a luz da cozinha, abra a porta e toque música de Natal"</em>.
+        </div>
+    </main>
+
+    <!-- Na vida real, você importaria o Firebase RTDB SDK v9 aqui. Para demonstração visual no Canvas, usaremos uma simulação Mock que se comporta idêntico. -->
+    <script>
+        // ---------------------------------------------------------
+        // 1. MOCK DO FIREBASE E ESTADO DA CASA (CORREÇÃO)
+        // ---------------------------------------------------------
+        let houseState = {
+            sala: false, cozinha: false, quarto: false, garagem: false, varanda: false, sotao: false,
+            porta: false, alarme: false
+        };
+
+        // Funções Mock para atualizar a Interface quando clicamos ou usamos a IA
+        function updateFirebase(device, state) {
+            houseState[device] = state;
+            const toggle = document.getElementById('toggle-' + device);
+            const icon = document.getElementById('icon-' + device);
+            if(toggle) toggle.checked = state;
+            if(icon) {
+                if(state) icon.classList.replace('text-slate-600', 'text-yellow-400');
+                else icon.classList.replace('text-yellow-400', 'text-slate-600');
+            }
+        }
+
+        function togglePorta() {
+            houseState.porta = !houseState.porta;
+            const btn = document.getElementById('btn-porta');
+            const icon = document.getElementById('icon-porta');
+            if (houseState.porta) {
+                btn.innerText = "FECHAR";
+                btn.classList.replace('bg-slate-700', 'bg-yellow-600');
+                icon.classList.replace('fa-door-closed', 'fa-door-open');
+                icon.classList.replace('text-slate-600', 'text-yellow-400');
+            } else {
+                btn.innerText = "ABRIR";
+                btn.classList.replace('bg-yellow-600', 'bg-slate-700');
+                icon.classList.replace('fa-door-open', 'fa-door-closed');
+                icon.classList.replace('text-yellow-400', 'text-slate-600');
+            }
+        }
+
+        function toggleAlarme() {
+            houseState.alarme = !houseState.alarme;
+            const btn = document.getElementById('btn-alarme');
+            const icon = document.getElementById('icon-alarme');
+            if (houseState.alarme) {
+                btn.innerText = "DESARMAR";
+                btn.classList.replace('bg-slate-700', 'bg-red-600');
+                icon.classList.replace('text-slate-600', 'text-red-500');
+                icon.classList.add('fa-beat-fade'); // Animação de pulsar
+            } else {
+                btn.innerText = "ARMAR";
+                btn.classList.replace('bg-red-600', 'bg-slate-700');
+                icon.classList.replace('text-red-500', 'text-slate-600');
+                icon.classList.remove('fa-beat-fade');
+            }
+        }
+
+        function playMusic(song) {
+            // Apenas um log para simular que enviou o comando de música ao ESP32
+            console.log("Comando de música enviado para o ESP32:", song);
+        }
+
+        // ---------------------------------------------------------
+        // 3. MEDIDOR VIRTUAL DE ENERGIA E SENSORES
+        // ---------------------------------------------------------
+        const KWH_PRICE = 0.95; // R$ por kWh
+        let secsLights = 0;
+        let secsPC = 0;
+        let aiRequests = 0;
+        
+        //        // --- MOCK DO BANCO DE DADOS (HISTÓRICO PARA A IA) ---
+        // Na vida real, o Dashboard puxaria isso do Firebase.
+        const mockDatabaseHistory = {
+            "segunda_feira": { luzes_kwh: 0.15, pc_kwh: 0.12, ia_kwh: 0.05, custo_reais: 0.30 },
+            "terca_feira": { luzes_kwh: 0.20, pc_kwh: 0.10, ia_kwh: 0.02, custo_reais: 0.30 },
+            "quarta_feira": { luzes_kwh: 0.18, pc_kwh: 0.15, ia_kwh: 0.08, custo_reais: 0.38 }
+        };
+        
+        // --- Novas Variáveis para a Média de Temperatura ---
+        let tempHistory = [];
+        let lastSensorUpdate = 0; // Vai controlar se o ESP32 está online
+
+        // ---------------------------------------------------------
+        // FUNÇÃO DE CONEXÃO COM O MUNDO REAL (Para o Membro 2 usar)
+        // Quando o Firebase for conectado, ele chamará esta função
+        // ---------------------------------------------------------
+        function receiveRealData(tempReal, umidReal) {
+            lastSensorUpdate = Date.now(); // Salva a hora exata que o dado chegou
+            
+            document.getElementById('txt-temp').innerText = `${parseFloat(tempReal).toFixed(1)} °C`;
+            document.getElementById('txt-umid').innerText = `${parseFloat(umidReal).toFixed(1)} %`;
+
+            // Guarda a temperatura no histórico para a média
+            tempHistory.push({ temp: parseFloat(tempReal), time: lastSensorUpdate });
+
+            // Limpa dados mais velhos que 1 hora (3600000 ms)
+            // Dica: Na hora da banca, mude para 60000 (1 min) para eles verem a média mudando na hora!
+            const JANELA_DE_TEMPO_MS = 3600000; 
+            tempHistory = tempHistory.filter(reading => lastSensorUpdate - reading.time <= JANELA_DE_TEMPO_MS);
+
+            // Calcula a média EXATAMENTE com os dados reais
+            if(tempHistory.length > 0) {
+                const sum = tempHistory.reduce((acc, curr) => acc + curr.temp, 0);
+                const avg = sum / tempHistory.length;
+                document.getElementById('txt-media-temp').innerText = `${avg.toFixed(1)} °C`;
+            }
+        }
+
+        setInterval(() => {
+            // Conta PC
+            secsPC++;
+            let costPC = ((50 * (secsPC / 3600)) / 1000) * KWH_PRICE;
+            document.getElementById('time-pc').innerText = `${Math.floor(secsPC/3600)}h ${Math.floor((secsPC%3600)/60)}m ${secsPC%60}s (Aprox. 50W)`;
+            document.getElementById('cost-pc').innerText = `R$ ${costPC.toFixed(5)}`;
+
+            // Conta Luzes
+            let activeLights = ['sala','cozinha','quarto','garagem','varanda','sotao'].filter(d => houseState[d]).length;
+            if(activeLights > 0) {
+                secsLights += activeLights; // Acelera o tempo baseado na quantidade de luzes
+                let costLights = ((15 * (secsLights / 3600)) / 1000) * KWH_PRICE;
+                document.getElementById('time-lights').innerText = `${Math.floor(secsLights/3600)}h ${Math.floor((secsLights%3600)/60)}m ${secsLights%60}s (${activeLights} luzes ligadas)`;
+                document.getElementById('cost-lights').innerText = `R$ ${costLights.toFixed(5)}`;
+            }
+
+            // --- Lógica de Detecção de ESP32 Offline ---
+            // Se passar de 10 segundos sem o ESP32 enviar dados (lastSensorUpdate não atualizar),
+            // a interface avisa que está Offline e congela o cálculo da média.
+            if (Date.now() - lastSensorUpdate > 10000) {
+                document.getElementById('txt-temp').innerText = `Offline`;
+                document.getElementById('txt-umid').innerText = `Offline`;
+                document.getElementById('txt-temp').classList.replace('text-orange-400', 'text-slate-500');
+                document.getElementById('txt-umid').classList.replace('text-blue-400', 'text-slate-500');
+            } else {
+                // Retorna as cores originais se o sensor voltar a ficar Online
+                document.getElementById('txt-temp').classList.replace('text-slate-500', 'text-orange-400');
+                document.getElementById('txt-umid').classList.replace('text-slate-500', 'text-blue-400');
+            }
+
+        }, 1000);
+
+        function registerAIUse() {
+            aiRequests++;
+            let costAI = ((3 * aiRequests) / 1000) * KWH_PRICE; // 3Wh por requisição
+            document.getElementById('count-ai').innerText = aiRequests;
+            document.getElementById('cost-ai').innerText = `R$ ${costAI.toFixed(4)}`;
+        }
+
+        // ---------------------------------------------------------
+        // 4. COMANDOS DE VOZ E IA (Web Speech API + Gemini)
+        // ---------------------------------------------------------
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        if(SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.continuous = false;
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                processCommandWithAI(transcript);
+            };
+            
+            recognition.onend = () => {
+                const btn = document.getElementById('btn-mic');
+                btn.classList.remove('pulse-mic');
+                document.getElementById('txt-mic').innerText = "Ouvir Comandos";
+            }
+        }
+
+        function toggleVoice() {
+            if(!recognition) { alert("Seu navegador não suporta reconhecimento de voz."); return; }
+            
+            const btn = document.getElementById('btn-mic');
+            btn.classList.add('pulse-mic');
+            document.getElementById('txt-mic').innerText = "Ouvindo...";
+            document.getElementById('ai-log').innerHTML = `<span class="text-blue-400"><i class="fa-solid fa-spinner fa-spin"></i> Escutando... Fale agora.</span>`;
+            
+            recognition.start();
+        }
+
+        async function processCommandWithAI(transcript) {
+            registerAIUse(); // Cobra o custo energético da IA
+            document.getElementById('ai-log').innerHTML = `<p class="text-slate-300"><b>Você disse:</b> "${transcript}"</p><p class="text-blue-400 mt-2"><i class="fa-solid fa-microchip fa-spin"></i> IA processando lógica...</p>`;
+
+            const apiKey = ""; // A plataforma Canvas injeta automaticamente
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            //            // Calcula o custo atual da sessão para enviar à IA
+            let custoAtualSessao = (((15 * (secsLights / 3600)) / 1000) + ((50 * (secsPC / 3600)) / 1000) + ((3 * aiRequests) / 1000)) * KWH_PRICE;
+
+            const systemPrompt = `Você é o cérebro e analista financeiro de uma casa inteligente. 
+            Extraia a intenção do usuário e retorne APENAS um array JSON válido, sem crases, sem markdown.
+            
+            1. Para controlar hardware:
+            Dispositivos válidos para relay (boolean): "sala", "cozinha", "quarto", "garagem", "varanda", "sotao".
+            Dispositivos extras: "porta" (boolean, true=abrir), "alarme" (boolean, true=armar).
+            Música (string): "natal", "starwars", "cat", "parar".
+            Exemplo: [{"device": "sala", "state": true}]
+
+            2. Para atualizar/analisar gastos e médias:
+            Se o usuário pedir para atualizar dados, somar gastos, ver o resumo ou analisar energia, você deve atuar como analista de dados.
+            Aqui estão os dados do BANCO DE DADOS (histórico de consumo e custos dos últimos dias): ${JSON.stringify(mockDatabaseHistory)}
+            E o custo extra em Reais gerado NA SESSÃO ATUAL (agora): R$ ${custoAtualSessao.toFixed(4)}.
+            Sua missão é LER os dados do banco, FAZER A SOMA real matemática do "custo_reais" dos dias passados e somar com o custo da sessão atual.
+            Retorne uma ação de "relatorio" com um texto amigável dando a resposta exata da soma em reais e uma breve dica de economia.
+            Exemplo: [{"action": "relatorio", "text": "A soma do histórico do banco de dados deu R$ X,XX. Somando com os R$ Y,YY de hoje, seu gasto total atualizado é de R$ Z,ZZ. Cuidado com o PC ligado!"}]
+
+            Comando do usuário: "${transcript}"`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+                });
+                
+                const result = await response.json();
+                let text = result.candidates[0].content.parts[0].text;
+                
+                // Limpa markdown caso a IA envie
+                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const commands = JSON.parse(text);
+                
+                document.getElementById('ai-log').innerHTML += `<p class="text-green-400 mt-2"><i class="fa-solid fa-check"></i> Comandos executados:</p><pre class="bg-slate-950 p-2 rounded mt-1 text-xs text-slate-300 hidden">${JSON.stringify(commands, null, 2)}</pre>`;
+                
+                //                // Executar os comandos
+                commands.forEach(cmd => {
+                    if(cmd.action === "relatorio") {
+                        // Renderiza a análise de dados vinda do banco num painel bonito
+                        document.getElementById('ai-log').innerHTML += `<div class="mt-4 p-4 bg-blue-900/30 border border-blue-500/50 rounded-xl text-blue-100 shadow-lg"><div class="flex items-center gap-2 text-blue-400 font-bold mb-2"><i class="fa-solid fa-robot"></i> Análise de Dados Atualizada:</div>${cmd.text}</div>`;
+                    }
+                    else if(typeof cmd.state === "boolean") {
+                        if(cmd.device === "porta") { if(cmd.state !== houseState.porta) togglePorta(); }
+                        else if(cmd.device === "alarme") { if(cmd.state !== houseState.alarme) toggleAlarme(); }
+                        else updateFirebase(cmd.device, cmd.state);
+                    } else if (cmd.device === "musica") {
+                        playMusic(cmd.state);
+                    }
+                });
+
+            } catch (e) {
+                document.getElementById('ai-log').innerHTML += `<p class="text-red-400 mt-2">Erro ao processar: Não foi possível gerar JSON válido a partir do seu comando.</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
