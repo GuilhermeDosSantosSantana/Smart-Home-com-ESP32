@@ -1,0 +1,6 @@
+# .gitignore - Padrão Sênior para PlatformIO
+.pio/
+.vscode/
+*.bin
+*.elf
+*.hex
