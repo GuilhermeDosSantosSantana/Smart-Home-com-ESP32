@@ -1,47 +1,110 @@
+# Smart Home ESP32
 
-# 🏠 Smart Home
+Projeto de automação residencial com ESP32, sensores, atuadores e interface web local. A proposta é demonstrar controle de hardware, leitura de sensores e lógica não bloqueante em um sistema embarcado simples de entender e replicar.
 
-> *"Automação não é sobre apertar botões. É sobre sentir que o ambiente responde a você."*
+## Demonstração
 
-Bem-vindo ao meu projeto. Este projeto não é apenas um controlador de relés; é o **cérebro digital** de uma residência moderna. Utilizando o poder do **ESP32**, transformamos uma simples maquete em um ecossistema vivo, capaz de sentir o clima, proteger o perímetro e interagir através de música e luz.
+![Demonstração conceitual do Smart Home ESP32](docs/assets/demo.gif)
 
-Diferente de sistemas básicos que travam enquanto executam tarefas, este projeto utiliza um **Núcleo Assíncrono (Non-blocking logic)**, permitindo que a casa toque música, monitore sensores e sirva a interface web simultaneamente, sem atrasos.
+O GIF resume a arquitetura do projeto. A execução real depende do circuito físico com ESP32, DHT11, PIR, buzzer, servo e LEDs/relés.
 
----
+## Funcionalidades
 
-## 🔥 Funcionalidades Principais
+* Interface web servida diretamente pelo ESP32.
+* Monitoramento de temperatura e umidade com DHT11.
+* Detecção de movimento com sensor PIR.
+* Controle de iluminação por ambientes.
+* Controle de portão com servo motor.
+* Buzzer para alertas e melodias.
+* Lógica não bloqueante para manter sensores, interface e sons responsivos.
 
-O sistema hospeda uma interface **Web App (Dark Mode)** diretamente na memória do ESP32, oferecendo:
+## Stack
 
-* **🛡️ Sentinela Ativa:** Sistema de alarme integrado com sensor PIR. Detecta intrusos e emite alertas visuais ("PERIGO") e sonoros instantâneos.
-* **🌡️ Climatologia em Tempo Real:** Monitoramento constante de Temperatura (°C) e Umidade (%) via sensor DHT11.
-* **🎵 Jukebox Polifônica:** Reprodução de temas (Natal, Star Wars, Memes) via buzzer passivo, com lógica não-bloqueante (a música toca sem travar o site).
-* **💡 Controle de Iluminação:** Gestão de 6 ambientes distintos (Sala, Cozinha, Quarto, Sótão, Varanda, Garagem).
-* **🚗 Acesso Remoto:** Controle de servo motor para abertura e fechamento do portão da garagem.
+| Área | Tecnologias |
+| --- | --- |
+| Hardware | ESP32, DHT11, PIR, servo, buzzer, LEDs/relés |
+| Firmware | Arduino/C++ |
+| Rede | Wi-Fi local, `WiFiServer` |
+| Interface | HTML/CSS servido pelo microcontrolador |
 
----
-
-## 🔌 Diagrama de Conexões (Hardware)
-
-Para replicar este projeto, siga o mapa de conexões abaixo. O sistema foi desenhado para maximizar o uso dos pinos do ESP32.
+## Arquitetura
 
 ```mermaid
 graph TD
-    ESP32[Microcontrolador ESP32]
-    
-    %% Sensores (Entrada)
-    DHT[DHT11 Sensor Clima] -->|GPIO 5| ESP32
-    PIR[PIR Sensor Movimento] -->|GPIO 18| ESP32
-    
-    %% Atuadores (Saída)
-    ESP32 -->|GPIO 13| Servo[Servo Motor Portão]
-    ESP32 -->|GPIO 19| Buzzer[Buzzer Piezo]
-    ESP32 -->|GPIO 2| LedAlarme[LED Indicador Alarme]
-    
-    %% Iluminação (Relés/LEDs)
-    ESP32 -->|GPIO 4| Sala[Luz Sala]
-    ESP32 -->|GPIO 12| Varanda[Luz Varanda]
-    ESP32 -->|GPIO 14| Garagem[Luz Garagem]
-    ESP32 -->|GPIO 15| Cozinha[Luz Cozinha]
-    ESP32 -->|GPIO 16| Quarto[Luz Quarto]
-    ESP32 -->|GPIO 17| Sotao[Luz Sótão]
+    ESP32[ESP32]
+    DHT[DHT11 temperatura/umidade] --> ESP32
+    PIR[PIR movimento] --> ESP32
+    ESP32 --> WEB[Interface web local]
+    ESP32 --> LUZ[Luzes por ambiente]
+    ESP32 --> SERVO[Servo do portão]
+    ESP32 --> BUZZER[Buzzer de alerta]
+```
+
+## Pinagem principal
+
+| Componente | GPIO |
+| --- | ---: |
+| DHT11 | 5 |
+| PIR | 18 |
+| Servo | 13 |
+| Buzzer | 19 |
+| LED/alarme | 2 |
+| Sala | 4 |
+| Varanda | 12 |
+| Garagem | 14 |
+| Cozinha | 15 |
+| Quarto | 16 |
+| Sótão | 17 |
+
+## Como configurar
+
+Copie o arquivo de exemplo:
+
+```bash
+cp secrets.example.h secrets.h
+```
+
+Edite `secrets.h` com a sua rede Wi-Fi local:
+
+```cpp
+const char* WIFI_SSID = "YOUR_WIFI_NAME";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+```
+
+`secrets.h` está no `.gitignore` e não deve ser versionado.
+
+## Como executar
+
+1. Abra `Smarthome.ino` na Arduino IDE ou em ambiente compatível.
+2. Instale as bibliotecas:
+   * `ESP32Servo`
+   * `DHT sensor library`
+3. Selecione a placa ESP32 correta.
+4. Compile e envie o firmware.
+5. Abra o Serial Monitor para ver o IP local.
+6. Acesse o IP no navegador conectado à mesma rede.
+
+## Como testar
+
+* Validar se o ESP32 conecta ao Wi-Fi local.
+* Confirmar leitura de temperatura e umidade.
+* Acionar cada saída de luz pela interface.
+* Acionar abertura/fechamento do servo.
+* Simular movimento no PIR e observar alerta visual/sonoro.
+* Confirmar que música/alerta não bloqueia atualização da interface.
+
+## O que este projeto demonstra
+
+* Programação embarcada com C++/Arduino.
+* Organização de pinos e periféricos no ESP32.
+* Interface web local sem backend externo.
+* Separação segura de credenciais Wi-Fi.
+* Lógica não bloqueante para melhorar responsividade em IoT.
+
+## Próximos passos
+
+* Adicionar fotos reais da maquete.
+* Separar HTML/CSS em blocos mais fáceis de manter.
+* Migrar para PlatformIO.
+* Adicionar testes documentados por checklist.
+* Criar versão com MQTT ou dashboard externo.

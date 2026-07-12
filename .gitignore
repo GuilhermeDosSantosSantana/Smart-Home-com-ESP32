@@ -1,0 +1,12 @@
+# Local Wi-Fi credentials
+secrets.h
+
+# PlatformIO/Arduino generated files
+.pio/
+.vscode/
+build/
+dist/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

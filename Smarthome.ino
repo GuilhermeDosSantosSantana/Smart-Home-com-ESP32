@@ -1,12 +1,9 @@
 #include <WiFi.h> 
 #include <ESP32Servo.h> 
 #include <DHT.h> 
+#include "secrets.h"
 
 Servo motorgaragem; 
-
-// --- CONFIGURAÇÃO DA REDE ---
-const char* ssid = "NOME DA REDE"; 
-const char* password = "SENHA DO WiFI"; 
 
 WiFiServer server(80);
 String header;
@@ -322,10 +319,10 @@ void setup() {
   digitalWrite(sinalalarme, LOW);
 
   Serial.println("Conectando a ");
-  Serial.println(ssid);
+  Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
   WiFi.setTxPower(WIFI_POWER_2dBm); 
-  WiFi.begin(ssid, password);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
